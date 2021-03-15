@@ -10,19 +10,73 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find(findUser => findUser.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User not found.' });
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  if (!user.pro) {
+    if (user.todos.length >= 10) {
+      return response.status(403).json({ error: 'You are at max todos for the free plan.' });
+    }
+    
+    return next();
+  } 
+
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find(findUser => findUser.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User not found.' });
+  }
+
+  const isUuid = validate(id);
+
+  if (!isUuid) {
+    return response.status(400).json({ error: 'User id is not an uuid.' });
+  }
+
+  const todo = user.todos.find(findTodo => findTodo.id === id);
+
+  if (!todo) {
+    return response.status(404).json({ error: 'Todo not found.' });
+  }
+
+  request.todo = todo;
+  request.user = user;
+
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find(findUser => findUser.id === id);
+
+  if (!user) {
+    return response.status(404).json({ error: 'User not found.' })
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -39,7 +93,7 @@ app.post('/users', (request, response) => {
     name,
     username,
     pro: false,
-    todos: []
+    todos: [],
   };
 
   users.push(user);
@@ -80,7 +134,7 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
     title,
     deadline: new Date(deadline),
     done: false,
-    created_at: new Date()
+    created_at: new Date(),
   };
 
   user.todos.push(newTodo);
@@ -126,5 +180,5 @@ module.exports = {
   checksExistsUserAccount,
   checksCreateTodosUserAvailability,
   checksTodoExists,
-  findUserById
+  findUserById,
 };
